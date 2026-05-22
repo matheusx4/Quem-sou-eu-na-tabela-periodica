@@ -561,7 +561,7 @@ async function carregarElementos() {
   let html = '<div class="text-center font-bold"></div>';
   html += Array.from({ length: 18 }, (_, i) => `<div class="text-center font-bold" aria-hidden="true">${i + 1}</div>`).join('');
 
-  for (let p = 1; p <= 9; p++) {
+  for (let p = 1; p <= 10; p++) {
     html += `<div class="text-center font-bold" aria-hidden="true">${p}</div>`;
     for (let g = 1; g <= 18; g++) {
       const el = elementos.find(e => e.grupo === g && e.periodo === p);
