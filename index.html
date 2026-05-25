@@ -536,8 +536,11 @@ function mudarFonte(delta) {
 async function carregarElementos() {
   const response = await fetch('https://raw.githubusercontent.com/Bowserinator/Periodic-Table-JSON/master/PeriodicTableJSON.json');
   const data = await response.json();
-  const elementos = data.elements.map(e => {
-    // ... (mantenha sua lógica de mapeamento de nomes, cores e aplicações como está)
+  
+  // FILTRO: Aceita apenas os elementos de 1 a 118
+  const elementosFiltrados = data.elements.filter(e => e.number <= 118);
+
+  const elementos = elementosFiltrados.map(e => {
     const nome = nomesEmPortugues[e.number] || e.name;
     const aplicacao = aplicacoesEmPortugues[e.name] || 'Aplicação geral 🧪';
     const estadoFisico = estadosFisicos[e.phase] || 'Desconhecido';
@@ -566,7 +569,6 @@ async function carregarElementos() {
     for (let g = 1; g <= 18; g++) {
       const el = elementos.find(e => e.grupo === g && e.periodo === p);
       if (el) {
-        // AJUSTE DE ACESSIBILIDADE AQUI:
         html += `
           <div class="element ${el.cor} text-white text-center p-2 rounded shadow cursor-pointer hover:brightness-110"
                onclick="showElementInfo('${el.nome}', ${el.numero}, '${el.simbolo}', ${el.massa}, '${el.aplicacao}', '${el.estadoFisico}', ${el.meltTemp}, ${el.boilTemp})"
