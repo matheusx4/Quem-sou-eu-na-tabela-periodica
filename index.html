@@ -600,25 +600,26 @@ async function carregarElementos() {
       selectedElementNumber = null; // Limpa o elemento selecionado ao fechar o painel
     }
 
-    // Nova função para eliminar o elemento
-    function eliminarElemento() {
-      if (selectedElementNumber) {
-        const elementToEliminate = document.querySelector(`.element[data-number="${selectedElementNumber}"]`);
-        if (elementToEliminate) {
-          const nomeElemento = document.getElementById('element-name').innerText;
-          elementToEliminate.classList.add('eliminated');
-          
-          // AJUSTE DE VOZ: Confirma a eliminação
-          const locutor = document.getElementById('status-voz');
-          locutor.innerText = `Elemento ${nomeElemento} eliminado com sucesso.`;
-          
-          // Ajusta o aria-label para informar que já foi removido
-          elementToEliminate.setAttribute('aria-label', `${nomeElemento} (Eliminado)`);
-    
-          fecharInfo(); 
-        }
-      }
+// Nova função para eliminar o elemento
+function eliminarElemento() {
+  // CORREÇÃO: Adicionado 'window.' para ler corretamente o número do elemento selecionado
+  if (window.selectedElementNumber) {
+    const elementToEliminate = document.querySelector(`.element[data-number="${window.selectedElementNumber}"]`);
+    if (elementToEliminate) {
+      const nomeElemento = document.getElementById('element-name').innerText;
+      elementToEliminate.classList.add('eliminated');
+      
+      // AJUSTE DE VOZ: Confirma a eliminação
+      const locutor = document.getElementById('status-voz');
+      if (locutor) locutor.innerText = `Elemento ${nomeElemento} eliminado com sucesso.`;
+      
+      // Ajusta o aria-label para informar que já foi removido
+      elementToEliminate.setAttribute('aria-label', `${nomeElemento} (Eliminado)`);
+
+      fecharInfo(); 
     }
+  }
+}
 
 function resetarJogo() {
     // Limpa as eliminações visuais
