@@ -862,11 +862,13 @@ function resetarJogo() {
         elementoSecretoA: null,
         elementoSecretoB: null
     }).then(() => {
+        // LINHA ADICIONADA: Reseta visualmente os elementos eliminados para todos ao iniciar nova rodada
+        document.querySelectorAll('.element').forEach(el => el.classList.remove('eliminated'));
+
         anunciarVoz("Uma nova rodada foi gerada. Vinte e quatro elementos foram selecionados na tabela.");
         alert("Nova rodada de 24 elementos sincronizada para todos!");
     });
   };
-
 window.darPalpite = () => {
     const sala = document.getElementById('codigo-sala').value.trim().toUpperCase();
     if (!sala || !window.minhaEquipe) {
