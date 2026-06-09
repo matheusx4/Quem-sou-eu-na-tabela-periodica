@@ -93,6 +93,13 @@
   </style>
 </head>
 <body>
+  <!-- TELA DE FIM DE JOGO -->
+  <div id="tela-fim-jogo" class="hidden fixed inset-0 bg-black/90 z-[999] flex flex-col items-center justify-center text-white p-6 text-center backdrop-blur-sm">
+      <h2 class="text-5xl font-black mb-4 tracking-wide text-yellow-400">FIM DE JOGO</h2>
+      <p id="msg-fim-jogo" class="text-3xl font-medium max-w-2xl mb-8"></p>
+      <p class="text-lg text-gray-400 italic">Aguarde o professor gerar uma nova rodada... 🔄</p>
+  </div>
+
   <div id="status-voz" aria-live="polite" class="sr-only" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0;"></div>
     <header class="relative text-center py-10 px-6 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 text-white overflow-hidden shadow-lg">
         <div class="absolute top-0 left-0 w-full h-full pointer-events-none">
@@ -121,7 +128,25 @@
     <input type="text" id="codigo-sala" placeholder="Ex: QUIMICA01" aria-label="Digite o código da sala" class="border p-2 rounded w-full outline-none focus:border-purple-500">
     <button onclick="conectarSala()" aria-label="Botão para conectar na sala" class="bg-indigo-600 text-white px-6 py-2 rounded font-bold hover:bg-indigo-700">Conectar Sala</button>
 </div>
-    <p id="status-sala" class="text-sm mb-6 text-gray-500 italic">Status: Aguardando conexão... 🔌</p>
+<p id="status-sala" class="text-sm mb-6 text-gray-500 italic">Status: Aguardando conexão... 🔌</p>
+
+    <!-- PLACAR E TURNOS -->
+    <div id="placar-sincronizado" class="hidden bg-slate-900 text-white p-4 rounded-xl mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4 items-center shadow-lg">
+        <div class="text-center sm:text-left">
+            <span class="text-xs uppercase text-gray-400 block tracking-widest">Turno Atual</span>
+            <span id="txt-vez-equipe" class="text-2xl font-black text-yellow-400">---</span>
+        </div>
+        <div class="flex justify-around border-t sm:border-t-0 sm:border-l border-gray-700 pt-2 sm:pt-0">
+            <div class="text-center">
+                <span class="text-xs text-gray-400 block">Palpites Grupo A</span>
+                <span id="palpites-restantes-a" class="text-xl font-bold text-blue-400">3/3</span>
+            </div>
+            <div class="text-center">
+                <span class="text-xs text-gray-400 block">Palpites Grupo B</span>
+                <span id="palpites-restantes-b" class="text-xl font-bold text-pink-400">3/3</span>
+            </div>
+        </div>
+    </div>
 
     <div id="container-selecao-equipe" class="bg-gray-100 p-4 rounded-xl mb-6">
         <p id="titulo-equipe" class="font-bold text-gray-700 mb-2">Escolha sua Equipe:</p>
@@ -600,27 +625,6 @@ async function carregarElementos() {
       selectedElementNumber = null; // Limpa o elemento selecionado ao fechar o painel
     }
 
-// Nova função para eliminar o elemento
-function eliminarElemento() {
-  // CORREÇÃO: Adicionado 'window.' para ler corretamente o número do elemento selecionado
-  if (window.selectedElementNumber) {
-    const elementToEliminate = document.querySelector(`.element[data-number="${window.selectedElementNumber}"]`);
-    if (elementToEliminate) {
-      const nomeElemento = document.getElementById('element-name').innerText;
-      elementToEliminate.classList.add('eliminated');
-      
-      // AJUSTE DE VOZ: Confirma a eliminação
-      const locutor = document.getElementById('status-voz');
-      if (locutor) locutor.innerText = `Elemento ${nomeElemento} eliminado com sucesso.`;
-      
-      // Ajusta o aria-label para informar que já foi removido
-      elementToEliminate.setAttribute('aria-label', `${nomeElemento} (Eliminado)`);
-
-      fecharInfo(); 
-    }
-  }
-}
-
 function resetarJogo() {
     // Limpa as eliminações visuais
     document.querySelectorAll('.element').forEach(el => el.classList.remove('eliminated'));
@@ -742,13 +746,11 @@ function resetarJogo() {
 
   window.minhaEquipe = null; 
 
-  // Função auxiliar para o locutor de voz
   const anunciarVoz = (mensagem) => {
     const locutor = document.getElementById('status-voz');
     if (locutor) locutor.innerText = mensagem;
   };
 
-  // --- 1. CONECTAR À SALA COM FEEDBACK ---
   window.conectarSala = () => {
     const salaInput = document.getElementById('codigo-sala');
     const sala = salaInput.value.trim().toUpperCase();
@@ -766,18 +768,51 @@ function resetarJogo() {
             const painel = document.getElementById('painel-secreto');
             const display = document.getElementById('display-elemento-secreto');
 
-            if (minhaEquipe) {
-                let segredoData = (minhaEquipe === 'A') ? data.elementoSecretoA : data.elementoSecretoB;
+            if (window.minhaEquipe) {
+                let segredoData = (window.minhaEquipe === 'A') ? data.elementoSecretoA : data.elementoSecretoB;
 
                 if (segredoData && segredoData.id) {
                     painel.classList.remove('hidden');
                     const nome = nomesEmPortugues[segredoData.id] || "Elemento";
                     display.innerHTML = `#${segredoData.id} ${nome}`;
-                    // FEEDBACK DE VOZ: Anuncia o elemento secreto
-                    anunciarVoz(`Seu elemento secreto foi definido: ${nome}, número ${segredoData.id}.`);
                 } else {
                     painel.classList.add('hidden');
                 }
+
+                // Sincroniza os elementos eliminados apenas da MINHA equipe
+                const meusEliminados = (window.minhaEquipe === 'A') ? data.eliminadosA : data.eliminadosB;
+                document.querySelectorAll('.element').forEach(el => el.classList.remove('eliminated'));
+                if (meusEliminados) {
+                    meusEliminados.forEach(id => {
+                        const card = document.querySelector(`.element[data-number="${id}"]`);
+                        if (card) card.classList.add('eliminated');
+                    });
+                }
+            }
+
+            // Sincroniza Placar e Turno
+            const placar = document.getElementById('placar-sincronizado');
+            if (placar && data.vez) {
+                placar.classList.remove('hidden');
+                document.getElementById('txt-vez-equipe').innerText = `EQUIPE ${data.vez}`;
+                document.getElementById('txt-vez-equipe').className = data.vez === 'A' ? "text-2xl font-black text-blue-400" : "text-2xl font-black text-pink-400";
+                document.getElementById('palpites-restantes-a').innerText = `${data.palpitesA !== undefined ? data.palpitesA : 3}/3`;
+                document.getElementById('palpites-restantes-b').innerText = `${data.palpitesB !== undefined ? data.palpitesB : 3}/3`;
+            }
+
+            // Sincroniza Fim de Jogo (Vitória/Derrota)
+            const telaFim = document.getElementById('tela-fim-jogo');
+            if (data.vencedor && telaFim) {
+                telaFim.classList.remove('hidden');
+                document.getElementById('msg-fim-jogo').innerHTML = `A <b>EQUIPE ${data.vencedor}</b> venceu a partida! 🏆`;
+                if (data.vencedor === window.minhaEquipe) {
+                    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+                    anunciarVoz("Parabéns! Sua equipe venceu a partida!");
+                } else if (window.minhaEquipe) {
+                    anunciarVoz("A equipe adversária venceu a partida.");
+                }
+            } else if (telaFim) {
+                telaFim.classList.add('hidden');
             }
         }
     });
@@ -857,62 +892,99 @@ function resetarJogo() {
       if(!sorteados.includes(n)) sorteados.push(n);
     }
     
+    // ATUALIZAÇÃO: Geramos a nova rodada e os estados do Jogo (Turnos e Limites)
     set(ref(db, `salas/${sala}`), {
         elementosDaRodada: sorteados,
         elementoSecretoA: null,
-        elementoSecretoB: null
+        elementoSecretoB: null,
+        vez: 'A', // Grupo A começa
+        palpitesA: 3,
+        palpitesB: 3,
+        eliminadosA: [],
+        eliminadosB: [],
+        vencedor: null
     }).then(() => {
-        // LINHA ADICIONADA: Reseta visualmente os elementos eliminados para todos ao iniciar nova rodada
         document.querySelectorAll('.element').forEach(el => el.classList.remove('eliminated'));
-
         anunciarVoz("Uma nova rodada foi gerada. Vinte e quatro elementos foram selecionados na tabela.");
-        alert("Nova rodada de 24 elementos sincronizada para todos!");
+        alert("Nova rodada de 24 elementos iniciada! Equipe A começa.");
     });
   };
-window.darPalpite = () => {
+
+  // NOVA FUNÇÃO ELIMINAR SINCRONIZADA
+  window.eliminarElemento = () => {
+    const sala = document.getElementById('codigo-sala').value.trim().toUpperCase();
+    if (!sala || !window.minhaEquipe) return alert("Você precisa estar em uma equipe para eliminar elementos!");
+
+    if (window.selectedElementNumber) {
+        get(ref(db, `salas/${sala}/vencedor`)).then((snap) => {
+            if (snap.val()) return alert("O jogo já acabou!");
+
+            const caminho = `salas/${sala}/eliminados${window.minhaEquipe}`;
+            get(ref(db, caminho)).then((snapshot) => {
+                let lista = snapshot.val() || [];
+                if (!lista.includes(window.selectedElementNumber)) {
+                    lista.push(window.selectedElementNumber);
+                    set(ref(db, caminho), lista).then(() => {
+                        const nomeElemento = document.getElementById('element-name').innerText;
+                        anunciarVoz(`Elemento ${nomeElemento} eliminado.`);
+                        fecharInfo();
+                    });
+                }
+            });
+        });
+    }
+  };
+
+  // NOVA FUNÇÃO DAR PALPITE COM TURNOS E LIMITES
+  window.darPalpite = () => {
     const sala = document.getElementById('codigo-sala').value.trim().toUpperCase();
     if (!sala || !window.minhaEquipe) {
-        alert("Você precisa entrar em uma sala e escolher uma equipe primeiro!");
-        return;
+        return alert("Você precisa entrar em uma sala e escolher uma equipe primeiro!");
     }
 
-    // Descobre quem é o adversário
-    const equipeAdversaria = (window.minhaEquipe === 'A') ? 'B' : 'A';
-    const caminhoAdversario = `salas/${sala}/elementoSecreto${equipeAdversaria}`;
+    get(ref(db, `salas/${sala}`)).then((snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
 
-    // Busca o segredo do adversário no Firebase
-    get(ref(db, caminhoAdversario)).then((snapshot) => {
-        const segredo = snapshot.val();
-        if (!segredo) {
-            alert("O adversário ainda não sorteou um elemento!");
-            return;
+        if (data.vencedor) return alert("A rodada já terminou!");
+
+        if (data.vez !== window.minhaEquipe) {
+            return alert("Aguarde! É a vez da equipe adversária.");
+        }
+
+        const equipeAdversaria = (window.minhaEquipe === 'A') ? 'B' : 'A';
+        const segredoAdversario = (equipeAdversaria === 'A') ? data.elementoSecretoA : data.elementoSecretoB;
+
+        if (!segredoAdversario) {
+            return alert("O adversário ainda não sorteou um elemento!");
         }
 
         const nomeElemento = document.getElementById('element-name').innerText;
+        let meusPalpites = data[`palpites${window.minhaEquipe}`];
 
-        // Compara o número do elemento aberto (window.selectedElementNumber) com o segredo
-        if (window.selectedElementNumber === segredo.id) {
-            const vitoriaMsg = `🎉 VITÓRIA! Você acertou! O elemento secreto da Equipe ${equipeAdversaria} era o ${nomeElemento}!`;
-            alert(vitoriaMsg);
-            anunciarVoz(vitoriaMsg);
-          
-            // DISPARA O CONFETE
-            confetti({
-                particleCount: 150,
-                spread: 70,
-                origin: { y: 0.6 },
-                colors: ['#22c55e', '#3b82f6', '#ef4444', '#eab308']
-            }); // <-- Faltava fechar o parêntese do confetti aqui
-          
+        if (window.selectedElementNumber === segredoAdversario.id) {
+            // Acertou - Vitória!
+            set(ref(db, `salas/${sala}/vencedor`), window.minhaEquipe);
         } else {
-            const erroMsg = `❌ ERRADO! O elemento secreto não é o ${nomeElemento}. Perdeu a vez!`;
-            alert(erroMsg);
-            anunciarVoz(erroMsg);
+            // Errou
+            meusPalpites -= 1;
+            
+            // Atualiza palpites no banco
+            set(ref(db, `salas/${sala}/palpites${window.minhaEquipe}`), meusPalpites);
+
+            if (meusPalpites <= 0) {
+                alert(`❌ Palpite ERRADO! Você esgotou seus 3 palpites.`);
+                // Adversário vence
+                set(ref(db, `salas/${sala}/vencedor`), equipeAdversaria);
+            } else {
+                alert(`❌ Palpite ERRADO! Restam ${meusPalpites} palpites. Você perdeu a vez!`);
+                // Passa a vez
+                set(ref(db, `salas/${sala}/vez`), equipeAdversaria);
+            }
+            fecharInfo();
         }
-    }).catch((error) => {
-        console.error("Erro no Firebase:", error);
-    }); // <-- Faltava fechar o parêntese do .then() aqui
-};
+    });
+  };
   
   function atualizarVisualTabela(idsSorteados) {
     document.querySelectorAll('.element').forEach(card => {
@@ -922,7 +994,6 @@ window.darPalpite = () => {
         card.style.filter = isAceso ? "none" : "grayscale(100%)";
         card.style.pointerEvents = isAceso ? "auto" : "none";
         
-        // Atualiza ARIA label para refletir se o elemento está em jogo ou não
         const nome = card.querySelector('.text-xs:last-child').innerText;
         if (!isAceso) {
           card.setAttribute('aria-label', `${nome}. Fora da rodada.`);
