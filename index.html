@@ -94,10 +94,17 @@
 </head>
 <body>
   <!-- TELA DE FIM DE JOGO -->
-  <div id="tela-fim-jogo" class="hidden fixed inset-0 bg-black/90 z-[999] flex flex-col items-center justify-center text-white p-6 text-center backdrop-blur-sm">
+<div id="tela-fim-jogo" class="hidden fixed inset-0 bg-black/90 z-[999] flex flex-col items-center justify-center text-white p-6 text-center backdrop-blur-sm overflow-y-auto">
       <h2 class="text-5xl font-black mb-4 tracking-wide text-yellow-400">FIM DE JOGO</h2>
       <p id="msg-fim-jogo" class="text-3xl font-medium max-w-2xl mb-8"></p>
-      <p class="text-lg text-gray-400 italic">Aguarde o professor gerar uma nova rodada... 🔄</p>
+      
+      <button onclick="sortearElementosParaSala()" class="px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-2xl transition-all text-xl mb-6 border-2 border-green-400 animate-pulse">
+          Gerar Nova Rodada para o Grupo 🎲
+      </button>
+
+      <button onclick="fecharTelaFimJogo()" class="text-sm text-gray-400 underline hover:text-white transition-colors">
+          Ocultar esta tela para ver a tabela final 👁️
+      </button>
   </div>
 
   <div id="status-voz" aria-live="polite" class="sr-only" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0;"></div>
@@ -125,7 +132,7 @@
     <h3 class="font-bold text-lg mb-2 text-indigo-700">Painel de Jogo Sincronizado 🧪</h3>
     
 <div class="flex gap-4 mb-4">
-    <input type="text" id="codigo-sala" placeholder="Ex: QUIMICA01" aria-label="Digite o código da sala" class="border p-2 rounded w-full outline-none focus:border-purple-500">
+    <input type="text" id="codigo-sala" placeholder="Ex: QUIMICA01" aria-label="Digite o cósdigo da sala" class="border p-2 rounded w-full outline-none focus:border-purple-500">
     <button onclick="conectarSala()" aria-label="Botão para conectar na sala" class="bg-indigo-600 text-white px-6 py-2 rounded font-bold hover:bg-indigo-700">Conectar Sala</button>
 </div>
 <p id="status-sala" class="text-sm mb-6 text-gray-500 italic">Status: Aguardando conexão... 🔌</p>
@@ -913,6 +920,11 @@ function resetarJogo() {
     });
   };
 
+  // Função para ocultar a tela de vitória sem resetar o banco de dados (para análise da tabela)
+  window.fecharTelaFimJogo = () => {
+      document.getElementById('tela-fim-jogo').classList.add('hidden');
+  };
+  
   window.eliminarElemento = () => {
     const sala = document.getElementById('codigo-sala').value.trim().toUpperCase();
     if (!sala || !window.minhaEquipe) return alert("Você precisa estar em uma equipe para eliminar elementos!");
