@@ -748,7 +748,7 @@ function resetarJogo() {
 
   const anunciarVoz = (mensagem) => {
     const locutor = document.getElementById('status-voz');
-    if (locutor) locutor.innerText = mensagem;
+    if (locutor) locutor.innerText = message || mensagem;
   };
 
   window.conectarSala = () => {
@@ -790,14 +790,18 @@ function resetarJogo() {
                 }
             }
 
-            // Sincroniza Placar e Turno
+            // 🌟 ADOCAO DE VALORES PADRAO AUTOMÁTICOS AO CONECTAR
             const placar = document.getElementById('placar-sincronizado');
-            if (placar && data.vez) {
+            if (placar) {
                 placar.classList.remove('hidden');
-                document.getElementById('txt-vez-equipe').innerText = `EQUIPE ${data.vez}`;
-                document.getElementById('txt-vez-equipe').className = data.vez === 'A' ? "text-2xl font-black text-blue-400" : "text-2xl font-black text-pink-400";
-                document.getElementById('palpites-restantes-a').innerText = `${data.palpitesA !== undefined ? data.palpitesA : 3}/3`;
-                document.getElementById('palpites-restantes-b').innerText = `${data.palpitesB !== undefined ? data.palpitesB : 3}/3`;
+                const vezAtual = data.vez || 'A'; // Se não houver 'vez' no banco, assume a Equipe A automaticamente
+                const pA = data.palpitesA !== undefined ? data.palpitesA : 3; // Se vazio, assume 3
+                const pB = data.palpitesB !== undefined ? data.palpitesB : 3; // Se vazio, assume 3
+
+                document.getElementById('txt-vez-equipe').innerText = `EQUIPE ${vezAtual}`;
+                document.getElementById('txt-vez-equipe').className = vezAtual === 'A' ? "text-2xl font-black text-blue-400" : "text-2xl font-black text-pink-400";
+                document.getElementById('palpites-restantes-a').innerText = `${pA}/3`;
+                document.getElementById('palpites-restantes-b').innerText = `${pB}/3`;
             }
 
             // Sincroniza Fim de Jogo (Vitória/Derrota)
@@ -892,12 +896,11 @@ function resetarJogo() {
       if(!sorteados.includes(n)) sorteados.push(n);
     }
     
-    // ATUALIZAÇÃO: Geramos a nova rodada e os estados do Jogo (Turnos e Limites)
     set(ref(db, `salas/${sala}`), {
         elementosDaRodada: sorteados,
         elementoSecretoA: null,
         elementoSecretoB: null,
-        vez: 'A', // Grupo A começa
+        vez: 'A', 
         palpitesA: 3,
         palpitesB: 3,
         eliminadosA: [],
@@ -910,7 +913,6 @@ function resetarJogo() {
     });
   };
 
-  // NOVA FUNÇÃO ELIMINAR SINCRONIZADA
   window.eliminarElemento = () => {
     const sala = document.getElementById('codigo-sala').value.trim().toUpperCase();
     if (!sala || !window.minhaEquipe) return alert("Você precisa estar em uma equipe para eliminar elementos!");
@@ -935,7 +937,7 @@ function resetarJogo() {
     }
   };
 
-  // NOVA FUNÇÃO DAR PALPITE COM TURNOS E LIMITES
+  // 🌟 FUNÇÃO DE PALPITE ADAPTADA COM INTELIGÊNCIA DE FALLBACKS AUTOMÁTICOS
   window.darPalpite = () => {
     const sala = document.getElementById('codigo-sala').value.trim().toUpperCase();
     if (!sala || !window.minhaEquipe) {
@@ -943,24 +945,26 @@ function resetarJogo() {
     }
 
     get(ref(db, `salas/${sala}`)).then((snapshot) => {
-        const data = snapshot.val();
-        if (!data) return;
+        const data = snapshot.val() || {};
 
         if (data.vencedor) return alert("A rodada já terminou!");
 
-        if (data.vez !== window.minhaEquipe) {
-            return alert("Aguarde! É a vez da equipe adversária.");
+        // Fallbacks automáticos para não travar o fluxo caso os campos não existam no banco
+        const vezAtual = data.vez || 'A';
+        let meusPalpites = data[`palpites${window.minhaEquipe}`] !== undefined ? data[`palpites${window.minhaEquipe}`] : 3;
+
+        if (vezAtual !== window.minhaEquipe) {
+            return alert(`Aguarde! É a vez da EQUIPE ${vezAtual} jogar.`);
         }
 
         const equipeAdversaria = (window.minhaEquipe === 'A') ? 'B' : 'A';
         const segredoAdversario = (equipeAdversaria === 'A') ? data.elementoSecretoA : data.elementoSecretoB;
 
         if (!segredoAdversario) {
-            return alert("O adversário ainda não sorteou um elemento!");
+            return alert("O adversário ainda não sorteou um elemento secreto!");
         }
 
         const nomeElemento = document.getElementById('element-name').innerText;
-        let meusPalpites = data[`palpites${window.minhaEquipe}`];
 
         if (window.selectedElementNumber === segredoAdversario.id) {
             // Acertou - Vitória!
@@ -969,16 +973,14 @@ function resetarJogo() {
             // Errou
             meusPalpites -= 1;
             
-            // Atualiza palpites no banco
+            // Registra as informações estruturadas no banco para as próximas rodadas
             set(ref(db, `salas/${sala}/palpites${window.minhaEquipe}`), meusPalpites);
 
             if (meusPalpites <= 0) {
-                alert(`❌ Palpite ERRADO! Você esgotou seus 3 palpites.`);
-                // Adversário vence
+                alert(`❌ Palpite ERRADO! Vocês esgotaram seus 3 palpites.`);
                 set(ref(db, `salas/${sala}/vencedor`), equipeAdversaria);
             } else {
-                alert(`❌ Palpite ERRADO! Restam ${meusPalpites} palpites. Você perdeu a vez!`);
-                // Passa a vez
+                alert(`❌ Palpite ERRADO! Restam ${meusPalpites} palpites. Vocês perderam a vez!`);
                 set(ref(db, `salas/${sala}/vez`), equipeAdversaria);
             }
             fecharInfo();
